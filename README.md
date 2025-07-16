@@ -24,7 +24,7 @@ Displays FirmwareCI job results directly in Gerrit's Checks tab with real-time s
    ```bash
    export FWCI_TOKEN="your-token"
    export FWCI_WORKFLOW_ID="your-workflow-id"
-   export FILE="path/to/firmware.bin"
+   export BINARIES="Binary=path/to/firmware.bin"
    export COMMIT_HASH="$(git rev-parse HEAD)"
    ```
 
@@ -38,12 +38,12 @@ Displays FirmwareCI job results directly in Gerrit's Checks tab with real-time s
 
 ### Required
 
-| Variable           | Description                     |
-| ------------------ | ------------------------------- |
-| `FWCI_TOKEN`       | FirmwareCI authentication token |
-| `FWCI_WORKFLOW_ID` | Workflow ID to execute          |
-| `FILE`             | Path to firmware binary         |
-| `COMMIT_HASH`      | Git commit hash                 |
+| Variable           | Description                                   |
+| ------------------ | --------------------------------------------- |
+| `FWCI_TOKEN`       | FirmwareCI authentication token               |
+| `FWCI_WORKFLOW_ID` | Workflow ID to execute                        |
+| `BINARIES`         | Key-value pairs of template names to binary paths |
+| `COMMIT_HASH`      | Git commit hash                               |
 
 ### Gerrit Integration (Optional)
 
@@ -63,7 +63,7 @@ Displays FirmwareCI job results directly in Gerrit's Checks tab with real-time s
 | --------------- | -------------------------------------------------------- |
 | `FWCI_EMAIL`    | Account email (instead of token)                         |
 | `FWCI_PASSWORD` | Account password (instead of token)                      |
-| `FWCI_API`      | API URL (default: https://api.firmwareci.9esec.dev:8443) |
+| `FWCI_API`      | API URL (default: <https://api.firmwareci.9esec.dev:8443>) |
 
 ### Configuration
 
@@ -110,7 +110,7 @@ stage('FirmwareCI Testing') {
   environment {
      FWCI_TOKEN = credentials('fwci-token')
      FWCI_WORKFLOW_ID = 'your-workflow-id'
-     FILE = 'build/firmware.bin'
+     BINARIES = 'Binary=build/firmware.bin'
      COMMIT_HASH = sh(script: 'git rev-parse HEAD', returnStdout: true).trim()
      CHANGE_ID = env.GERRIT_CHANGE_ID
      PROJECT = env.GERRIT_PROJECT
@@ -142,7 +142,7 @@ cp checks-plugin.js /path/to/gerrit/plugins/firmware-ci-checks.js
 ### Common Issues
 
 - **Authentication fails**: Verify `FWCI_TOKEN` is valid
-- **File not found**: Check `FILE` path exists and is accessible
+- **File not found**: Check `BiNARIES` paths exist and are accessible
 - **No results in Checks tab**: Verify Gerrit metadata variables are set in the script
 
 ### Support

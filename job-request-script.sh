@@ -1,11 +1,22 @@
 #!/bin/bash
 set -e
 
+declare -A BINARIES_MAP
+if [ -n "$BINARIES" ]; then
+    IFS=';' read -ra PAIRS <<< "$BINARIES"
+    for pair in "${PAIRS[@]}"; do
+        [[ -z "$pair" ]] && continue
+        key="${pair%%=*}"
+        value="${pair#*=}"
+        BINARIES_MAP["$key"]="$value"
+    done
+fi
+
+
 # Check required environment variables
-if [ -z "$FWCI_WORKFLOW_ID" ] || [ -z "$FILE" ] || [ -z "$COMMIT_HASH" ]; then
+if [ -z "$FWCI_WORKFLOW_ID" ] || [ -z "$COMMIT_HASH" ]; then
     echo "ERROR: Missing required environment variables:"
     echo "  FWCI_WORKFLOW_ID: ${FWCI_WORKFLOW_ID:-'(not set)'}"
-    echo "  FILE: ${FILE:-'(not set)'}"
     echo "  COMMIT_HASH: ${COMMIT_HASH:-'(not set)'}"
     exit 1
 fi
@@ -32,19 +43,14 @@ echo "=== FirmwareCI Deployment ======"
 echo "API: ${FWCI_API}"
 echo "Workflow ID: ${FWCI_WORKFLOW_ID}"
 echo "Commit hash: ${COMMIT_HASH}"
-echo "File to upload: ${FILE}"
-echo "Auth method: ${AUTH_METHOD}"
+[ -n "$BINARIES" ] && echo "Templates-Keys -> Files: ${BINARIES}"
 echo "================================"
 
-# Check if ROM file exists
-if [ ! -f "$FILE" ]; then
-    echo "ERROR: file not found: $FILE"
-    exit 1
-fi
 
 # Step 1: Authenticate (only if using email/password)
 if [ "$AUTH_METHOD" = "email_password" ]; then
     echo "Step 1: Authenticating with FirmwareCI..."
+
     LOGIN_RESPONSE=$(curl -s -X POST "${FWCI_API}/login" \
     -H "Content-Type: application/json" \
     -d "{\"email\": \"${FWCI_EMAIL}\", \"password\": \"${FWCI_PASSWORD}\"}")
@@ -64,27 +70,49 @@ else
     echo "Step 1: Using provided token for authentication"
 fi
 
-# Step 2: Upload binary to server
-echo "Step 2: Uploading binary..."
-UPLOAD_RESPONSE=$(curl -s -X POST "${FWCI_API}/v0/binary/${FWCI_WORKFLOW_ID}" \
--H "Authorization: ${ACCESS_TOKEN}" \
--H "Content-Type: multipart/form-data" \
--F "file=@${FILE}")
+# Step 2: Upload binaries to server (optional)
+if [ -n "$BINARIES" ]; then
+    echo "Step 2: Uploading binaries..."
+    
+    CURL_FORM_ARGS=()
+    
+    for key in "${!BINARIES_MAP[@]}"; do
+        file="${BINARIES_MAP[$key]}"
+        if [ -f "$file" ]; then
+            CURL_FORM_ARGS+=("-F" "${key}=@${file}")
+        else
+            REMOTE_BINARIES_MAP["$key"]="$file"
+        fi
+    done
 
-echo "Upload response: ${UPLOAD_RESPONSE}"
-STATUS_CODE=$(echo "${UPLOAD_RESPONSE}" | jq -r '.code // empty')
-BINARY_URI=$(echo "${UPLOAD_RESPONSE}" | jq -r '.data // empty')
+    UPLOAD_RESPONSE=$(curl -s -X POST "${FWCI_API}/v0/binaries/${FWCI_WORKFLOW_ID}" \
+        -H "Authorization: ${ACCESS_TOKEN}" \
+        -H "Content-Type: multipart/form-data" \
+        "${CURL_FORM_ARGS[@]}")
 
-if [ -z "$BINARY_URI" ] || [ "$STATUS_CODE" != "201" ]; then
-    echo "ERROR: Failed to upload binary or get URI"
-    echo "Status code: ${STATUS_CODE}"
-    echo "Response: ${UPLOAD_RESPONSE}"
-    exit 1
+    STATUS_CODE=$(echo "${UPLOAD_RESPONSE}" | jq -r '.code // empty')
+
+    DATA=$(echo "${UPLOAD_RESPONSE}" | jq -c '.data // empty')
+    
+    if [ -z "$DATA" ] || [ "$STATUS_CODE" != "201" ]; then
+        ERROR_MSG=$(echo "${UPLOAD_RESPONSE}" | jq -r '.error // empty')
+        echo "ERROR: Failed to upload binaries"
+        [ -n "$ERROR_MSG" ] && echo "Error message: $ERROR_MSG"
+        exit 1
+    fi
+    
+    BINARIES_JSON="$DATA"
+
+    if [ "${#REMOTE_BINARIES_MAP[@]}" -gt 0 ]; then
+        REMOTE_JSON=$(printf '{%s}' "$(IFS=,; for key in "${!REMOTE_BINARIES_MAP[@]}"; do printf '"%s":"%s"' "$key" "${REMOTE_BINARIES_MAP[$key]}"; done)")
+        BINARIES_JSON=$(jq -c --argjson local "$BINARIES_JSON" --argjson remote "$REMOTE_JSON" '$local + $remote')
+    fi
+    
+else
+    BINARIES_JSON="{}"
 fi
 
-echo "Binary uploaded successfully, URI: ${BINARY_URI}"
-
-# Step 3: Create job with the binary URI
+# Step 3: Create job with
 echo "Step 3: Creating job..."
 
 # Create JSON for gerrit data
@@ -101,14 +129,13 @@ JOB_RESPONSE=$(curl -s -X POST "${FWCI_API}/v0/job" \
 -H "Content-Type: application/json" \
 -d '{
     "workflow_id": "'"${FWCI_WORKFLOW_ID}"'",
-    "binary": "'"${BINARY_URI}"'",
+    "binaries": '"${BINARIES_JSON}"',
     "info": {
         "gerrit": {
             '"${GERRIT_JSON}"'
         },
         "meta": {
           "Trigger": "Gerrit",
-          "File": "'"$(basename "${FILE}")"'",
           "SHA": "'"${COMMIT_HASH}"'"
         }
     }
@@ -125,4 +152,3 @@ if [ "$STATUS_CODE" != "201" ]; then
 fi
 
 echo "Job created successfully!"
-echo "Deployment completed!"
