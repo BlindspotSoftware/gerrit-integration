@@ -9,7 +9,7 @@
 const CONFIG = Object.freeze({
   PLUGIN_VERSION: "1.0.0",
   API_VERSION: "3.12.0",
-  FIRMWARE_CI_API_URL: "https://api.firmwareci.9esec.dev:8444/v0",
+  FIRMWARE_CI_API_URL: "https://api.firmwareci.9esec.dev:8443/v0",
   FIRMWARE_CI_URL: "https://app.firmware-ci.dev/app",
   POLLING_INTERVAL_SECONDS: 60,
 });

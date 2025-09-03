@@ -54,8 +54,6 @@ Displays FirmwareCI job results directly in Gerrit's Checks tab with real-time s
 | `CHANGE_NUMBER`    | Gerrit change number       |
 | `CURRENT_REVISION` | Current revision           |
 | `PATCHSET`         | Patchset number            |
-| `COMMENT`          | Enable review comments     |
-| `VOTE`             | Enable voting via comments |
 
 ### Alternative Authentication
 
@@ -78,48 +76,35 @@ const CONFIG = Object.freeze({
 });
 ```
 
-## Comments & Labels Configuration
-
-To enable automated commenting and label voting functionality, a dedicated service account must be configured with appropriate permissions.
-
-### Service Account Setup
-
-Create a dedicated service account for FirmwareCI integration:
-
-```bash
-ssh -p 29418 <GERRIT_INSTANCE> gerrit create-account --http-password <PASSWORD> firmwareci
-```
-
-### Required Permissions
-
-Configure the following permissions for the `firmwareci` service account:
-
-- **Read Access**: Grant `Read` permission to `refs/*`
-- **Label Verification**: Grant `Label Verified` permission to `refs/heads/*`
-
-Add the service account to your instance's service users group to ensure proper access control.
-
-### Important Notes
-
-- When `COMMENT` and/or `VOTE` environment variables are configured, the service account will handle these operations automatically
-
 ## Jenkins Integration
 
 ```groovy
-stage('FirmwareCI Testing') {
-  environment {
-     FWCI_TOKEN = credentials('fwci-token')
-     FWCI_WORKFLOW_ID = 'your-workflow-id'
-     BINARIES = 'Binary=build/firmware.bin'
-     COMMIT_HASH = sh(script: 'git rev-parse HEAD', returnStdout: true).trim()
-     CHANGE_ID = env.GERRIT_CHANGE_ID
-     PROJECT = env.GERRIT_PROJECT
-     CHANGE_NUMBER = env.GERRIT_CHANGE_NUMBER
-     PATCHSET = env.GERRIT_PATCHSET_NUMBER
-  }
-  steps {
-     sh './job-request-script.sh'
-  }
+stage('Deploy to FirmwareCI') {
+    steps {
+        script {
+            sh '''
+                curl -o job-request-script.sh https://raw.githubusercontent.com/BlindspotSoftware/gerrit-integration/main/job-request-script.sh
+                chmod +x job-request-script.sh
+            '''
+        }
+
+        withCredentials([
+            string(credentialsId: 'firmwareci-token', variable: 'FWCI_TOKEN'),
+            string(credentialsId: 'firmwareci-workflow-id', variable: 'FWCI_WORKFLOW_ID')
+        ]) {
+            sh '''
+                export COMMIT_HASH="${GERRIT_PATCHSET_REVISION}"
+                export BINARIES="Binary=build/firmware.bin"
+                export CHANGE_ID="${GERRIT_CHANGE_ID:-}"
+                export PROJECT="${GERRIT_PROJECT:-}"
+                export CHANGE_NUMBER="${GERRIT_CHANGE_NUMBER:-}"
+                export CURRENT_REVISION="${GERRIT_PATCHSET_REVISION:-}"
+                export PATCHSET="${GERRIT_PATCHSET_NUMBER:-}"
+
+                ./job-request-script.sh
+            '''
+        }
+    }
 }
 ```
 

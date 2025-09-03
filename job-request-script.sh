@@ -119,7 +119,6 @@ echo "Step 3: Creating job..."
 GERRIT_JSON='"commit_hash": "'"${COMMIT_HASH}"'"'
 [ -n "$CHANGE_ID" ] && GERRIT_JSON="${GERRIT_JSON}, \"change_id\": \"${CHANGE_ID}\""
 [ -n "$PROJECT" ] && GERRIT_JSON="${GERRIT_JSON}, \"project\": \"${PROJECT}\""
-[ -n "$COMMENT" ] && GERRIT_JSON="${GERRIT_JSON}, \"comment\": true"
 [ -n "$CHANGE_NUMBER" ] && GERRIT_JSON="${GERRIT_JSON}, \"change_number\": \"${CHANGE_NUMBER}\""
 [ -n "$CURRENT_REVISION" ] && GERRIT_JSON="${GERRIT_JSON}, \"current_revision\": \"${CURRENT_REVISION}\""
 [ -n "$PATCHSET" ] && GERRIT_JSON="${GERRIT_JSON}, \"patchset\": \"${PATCHSET}\""
