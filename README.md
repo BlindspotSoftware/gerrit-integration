@@ -71,12 +71,36 @@ Modify the `CONFIG` object in `checks-plugin.js`:
 const CONFIG = Object.freeze({
   PLUGIN_VERSION: "1.0.0",
   API_VERSION: "3.12.0",
-  FIRMWARE_CI_API_URL: "https://api..com/app",
+  FIRMWARE_CI_API_URL: "https://api.firmwareci.example.com/app",
   POLLING_INTERVAL_SECONDS: 60,
 });
 ```
 
 ## Jenkins Integration
+
+### Gerrit Trigger Setup
+
+Configure your Jenkins pipeline to automatically trigger on Gerrit patchset creation:
+
+```groovy
+triggers {
+    gerrit customUrl: '',
+    gerritProjects: [
+        [
+            branches: [[compareType: 'ANT', pattern: '**']],
+            compareType: 'PLAIN',
+            pattern: 'your-project-name'
+        ]
+    ],
+    triggerOnEvents: [
+        patchsetCreated(excludeDrafts: true)
+    ]
+}
+```
+
+### FirmwareCI Deployment Stage
+
+Add this stage to your Jenkins pipeline to deploy firmware binaries to FirmwareCI:
 
 ```groovy
 stage('Deploy to FirmwareCI') {
@@ -127,7 +151,7 @@ cp checks-plugin.js /path/to/gerrit/plugins/firmware-ci-checks.js
 ### Common Issues
 
 - **Authentication fails**: Verify `FWCI_TOKEN` is valid
-- **File not found**: Check `BiNARIES` paths exist and are accessible
+- **File not found**: Check `BINARIES` paths exist and are accessible
 - **No results in Checks tab**: Verify Gerrit metadata variables are set in the script
 
 ### Support
