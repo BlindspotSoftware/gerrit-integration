@@ -63,18 +63,24 @@ Displays FirmwareCI job results directly in Gerrit's Checks tab with real-time s
 | `FWCI_PASSWORD` | Account password (instead of token)                      |
 | `FWCI_API`      | API URL (default: <https://api.firmwareci.9esec.dev:8443>) |
 
-### Configuration
+### Plugin Configuration
 
-Modify the `CONFIG` object in `checks-plugin.js`:
+Before installing the plugin, configure the `CONFIG` object in `checks-plugin.js`:
 
 ```javascript
 const CONFIG = Object.freeze({
   PLUGIN_VERSION: "1.0.0",
   API_VERSION: "3.12.0",
-  FIRMWARE_CI_API_URL: "https://api.firmwareci.example.com/app",
+  FIRMWARE_CI_API_URL: "https://api.firmwareci.9esec.dev:8443/v0",
+  FIRMWARE_CI_URL: "https://app.firmware-ci.com",
+  ORGANIZATION: "your-organization-name",  // Replace with your FirmwareCI organization name
   POLLING_INTERVAL_SECONDS: 60,
 });
 ```
+
+**Required Configuration:**
+
+- `ORGANIZATION`: Your FirmwareCI organization name (used to generate links in the UI)
 
 ## Jenkins Integration
 

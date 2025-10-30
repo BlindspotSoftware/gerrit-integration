@@ -10,7 +10,8 @@ const CONFIG = Object.freeze({
   PLUGIN_VERSION: "1.0.0",
   API_VERSION: "3.12.0",
   FIRMWARE_CI_API_URL: "https://api.firmwareci.9esec.dev:8443/v0",
-  FIRMWARE_CI_URL: "https://app.firmware-ci.com/app",
+  FIRMWARE_CI_URL: "https://app.firmware-ci.com",
+  ORGANIZATION: "ORG_NAME",
   POLLING_INTERVAL_SECONDS: 60,
 });
 
@@ -215,7 +216,7 @@ class FirmwareChecks {
       checkDescription: `${jobRequest.workflow_name}`,
       checkLink: encodeURI(`https://docs.firmware-ci.com`),
       statusLink: encodeURI(
-        `${CONFIG.FIRMWARE_CI_URL}/job-requests/${requestId}`
+        `${CONFIG.FIRMWARE_CI_URL}/${CONFIG.ORGANIZATION}/job-requests/${requestId}`
       ),
       labelName: "Verified",
       status: this.mapWorkflowStatus(jobRequest.status),
@@ -273,7 +274,7 @@ class FirmwareChecks {
    */
   createJobRequestLink(requestId) {
     return {
-      url: `${CONFIG.FIRMWARE_CI_URL}/job-requests/${requestId}`,
+      url: `${CONFIG.FIRMWARE_CI_URL}/${CONFIG.ORGANIZATION}/job-requests/${requestId}`,
       tooltip: "View workflow details in FirmwareCI",
       primary: true,
       icon: "EXTERNAL",
@@ -303,7 +304,7 @@ class FirmwareChecks {
       ],
       links: [
         {
-          url: `${CONFIG.FIRMWARE_CI_URL}/jobs/${job.id}`,
+          url: `${CONFIG.FIRMWARE_CI_URL}/${CONFIG.ORGANIZATION}/jobs/${job.id}`,
           tooltip: "View job details",
           primary: true,
           icon: "EXTERNAL",
