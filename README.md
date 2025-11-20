@@ -4,7 +4,7 @@ This repository provides CI/CD pipeline integration with Gerrit for automated fi
 
 ## Prerequisites
 
-- Gerrit repository linked with FirmwareCI ([Integration Guide](https://docs.firmware-ci.com/usage/1_initial_setup/index.html))
+- Gerrit repository linked with FirmwareCI ([Integration Guide](https://docs.firmware-ci.com/usage/2_repository_setup/index.html))
 
 
 ## Components
@@ -143,7 +143,7 @@ stage('Deploy to FirmwareCI') {
 ### Prerequisites
 
 - Gerrit 3.12+
-- Gerrit repository linked with FirmwareCI ([Integration Guide](https://docs.firmware-ci.com/usage/1_initial_setup/index.html#integration-sources))
+- Gerrit repository linked with FirmwareCI ([Integration Guide](https://docs.firmware-ci.com/usage/2_repository_setup/index.html))
 - Deployment script configured with Gerrit metadata
 
 ### Install
