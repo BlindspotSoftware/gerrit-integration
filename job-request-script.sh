@@ -14,10 +14,10 @@ fi
 
 
 # Check required environment variables
-if [ -z "$FWCI_WORKFLOW_ID" ] || [ -z "$COMMIT_HASH" ]; then
+if [ -z "$FWCI_WORKFLOW_ID" ] || [ -z "$GERRIT_PATCHSET_REVISION" ]; then
     echo "ERROR: Missing required environment variables:"
     echo "  FWCI_WORKFLOW_ID: ${FWCI_WORKFLOW_ID:-'(not set)'}"
-    echo "  COMMIT_HASH: ${COMMIT_HASH:-'(not set)'}"
+    echo "  GERRIT_PATCHSET_REVISION: ${GERRIT_PATCHSET_REVISION:-'(not set)'}"
     exit 1
 fi
 
@@ -42,7 +42,7 @@ FWCI_API="${FWCI_API:-https://api.firmwareci.9esec.dev:8443}"
 echo "=== FirmwareCI Deployment ======"
 echo "API: ${FWCI_API}"
 echo "Workflow ID: ${FWCI_WORKFLOW_ID}"
-echo "Commit hash: ${COMMIT_HASH}"
+echo "Commit hash: ${GERRIT_PATCHSET_REVISION}"
 [ -n "$BINARIES" ] && echo "Templates-Keys -> Files: ${BINARIES}"
 echo "================================"
 
@@ -116,12 +116,12 @@ fi
 echo "Step 3: Creating job..."
 
 # Create JSON for gerrit data
-GERRIT_JSON='"commit_hash": "'"${COMMIT_HASH}"'"'
-[ -n "$CHANGE_ID" ] && GERRIT_JSON="${GERRIT_JSON}, \"change_id\": \"${CHANGE_ID}\""
-[ -n "$PROJECT" ] && GERRIT_JSON="${GERRIT_JSON}, \"project\": \"${PROJECT}\""
-[ -n "$CHANGE_NUMBER" ] && GERRIT_JSON="${GERRIT_JSON}, \"change_number\": \"${CHANGE_NUMBER}\""
-[ -n "$CURRENT_REVISION" ] && GERRIT_JSON="${GERRIT_JSON}, \"current_revision\": \"${CURRENT_REVISION}\""
-[ -n "$PATCHSET" ] && GERRIT_JSON="${GERRIT_JSON}, \"patchset\": \"${PATCHSET}\""
+GERRIT_JSON='"commit_hash": "'"${GERRIT_PATCHSET_REVISION}"'"'
+[ -n "$GERRIT_CHANGE_ID" ] && GERRIT_JSON="${GERRIT_JSON}, \"change_id\": \"${GERRIT_CHANGE_ID}\""
+[ -n "$GERRIT_PROJECT" ] && GERRIT_JSON="${GERRIT_JSON}, \"project\": \"${GERRIT_PROJECT}\""
+[ -n "$GERRIT_CHANGE_NUMBER" ] && GERRIT_JSON="${GERRIT_JSON}, \"change_number\": \"${GERRIT_CHANGE_NUMBER}\""
+[ -n "$GERRIT_PATCHSET_REVISION" ] && GERRIT_JSON="${GERRIT_JSON}, \"current_revision\": \"${GERRIT_PATCHSET_REVISION}\""
+[ -n "$GERRIT_PATCHSET_NUMBER" ] && GERRIT_JSON="${GERRIT_JSON}, \"patchset\": \"${GERRIT_PATCHSET_NUMBER}\""
 
 JOB_RESPONSE=$(curl -s -X POST "${FWCI_API}/v0/job" \
 -H "Authorization: ${ACCESS_TOKEN}" \
@@ -135,7 +135,7 @@ JOB_RESPONSE=$(curl -s -X POST "${FWCI_API}/v0/job" \
         },
         "meta": {
           "Trigger": "Gerrit",
-          "SHA": "'"${COMMIT_HASH}"'"
+          "SHA": "'"${GERRIT_PATCHSET_REVISION}"'"
         }
     }
 }')
