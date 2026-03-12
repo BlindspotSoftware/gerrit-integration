@@ -24,8 +24,8 @@ Displays FirmwareCI job results directly in Gerrit's Checks tab with real-time s
    ```bash
    export FWCI_TOKEN="your-token"
    export FWCI_WORKFLOW_NAME="my-firmware-workflow"
+   export FWCI_PROJECT_LINK="github.com/my-org/firmware-config"
    export BINARIES="Binary=path/to/firmware.bin"
-   export COMMIT_HASH="$(git rev-parse HEAD)"
    ```
 
 2. **Run job-request:**
@@ -38,34 +38,35 @@ Displays FirmwareCI job results directly in Gerrit's Checks tab with real-time s
 
 ### Required
 
-| Variable            | Description                                                       |
-| ------------------- | ----------------------------------------------------------------- |
-| `FWCI_TOKEN`        | FirmwareCI authentication token                                   |
-| `FWCI_WORKFLOW_NAME`| Name of the FirmwareCI workflow (preferred over `FWCI_WORKFLOW_ID`) |
-| `FWCI_WORKFLOW_ID`  | *(Deprecated)* Workflow ULID — use `FWCI_WORKFLOW_NAME` instead  |
-| `COMMIT_HASH`       | Git commit hash                                                   |
+| Variable                   | Description                                                          |
+| -------------------------- | -------------------------------------------------------------------- |
+| `FWCI_TOKEN`               | FirmwareCI authentication token                                      |
+| `FWCI_WORKFLOW_NAME`       | Name of the FirmwareCI workflow (preferred over `FWCI_WORKFLOW_ID`)  |
+| `FWCI_WORKFLOW_ID`         | *(Deprecated)* Workflow ULID — use `FWCI_WORKFLOW_NAME` instead      |
+| `GERRIT_PATCHSET_REVISION` | Git commit hash — set automatically by the Gerrit Trigger plugin     |
 
 Workflow reference: provide either `FWCI_WORKFLOW_NAME` or `FWCI_WORKFLOW_ID` (mutually exclusive; exactly one must be set).
 
 ### Optional
 
-| Variable              | Description |
-| --------------------- | ----------- |
-| `BINARIES`            | Semicolon-separated `template=path` pairs. Paths may be local files, HTTP/S URLs, or S3 URIs. Example: `fw=./build/fw.bin;bl=./build/bl.bin` |
-| `FWCI_PROJECT_LINK`   | Repo containing the FirmwareCI workflow config — required when it differs from the repo being tested. Copy from the Workflows page (copy button next to the project name). Accepts with or without scheme; `org/repo` is sufficient for same-org repos. Example: `github.com/my-org/firmware-config` |
-| `FWCI_EMAIL`          | Account email (alternative to `FWCI_TOKEN`) |
-| `FWCI_PASSWORD`       | Account password (alternative to `FWCI_TOKEN`) |
-| `FWCI_API`            | API endpoint. Default: `https://api.firmwareci.9esec.dev:8443` |
+| Variable            | Description                                                                                                                                                                                                                                                                                          |
+| ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `BINARIES`          | Semicolon-separated `template=path` pairs. Paths may be local files, HTTP/S URLs, or S3 URIs. Example: `fw=./build/fw.bin;bl=./build/bl.bin`                                                                                                                                                        |
+| `FWCI_PROJECT_LINK` | Repo containing the FirmwareCI workflow config — required when it differs from the repo being tested. Copy from the Workflows page (copy button next to the project name). Accepts with or without scheme; `org/repo` is sufficient for same-org repos. Example: `github.com/my-org/firmware-config` |
+| `FWCI_EMAIL`        | Account email (alternative to `FWCI_TOKEN`)                                                                                                                                                                                                                                                          |
+| `FWCI_PASSWORD`     | Account password (alternative to `FWCI_TOKEN`)                                                                                                                                                                                                                                                       |
+| `FWCI_API`          | API endpoint. Default: `https://api.firmwareci.9esec.dev:8443`                                                                                                                                                                                                                                       |
 
 ### Gerrit Metadata (Optional)
 
-| Variable           | Description                |
-| ------------------ | -------------------------- |
-| `CHANGE_ID`        | Gerrit change ID           |
-| `PROJECT`          | Gerrit project name        |
-| `CHANGE_NUMBER`    | Gerrit change number       |
-| `CURRENT_REVISION` | Current revision           |
-| `PATCHSET`         | Patchset number            |
+These are set automatically by the Gerrit Trigger plugin when running in Jenkins.
+
+| Variable                   | Description          |
+| -------------------------- | -------------------- |
+| `GERRIT_CHANGE_ID`         | Gerrit change ID     |
+| `GERRIT_PROJECT`           | Gerrit project name  |
+| `GERRIT_CHANGE_NUMBER`     | Gerrit change number |
+| `GERRIT_PATCHSET_NUMBER`   | Patchset number      |
 
 ### Plugin Configuration
 
@@ -127,14 +128,8 @@ stage('Deploy to FirmwareCI') {
         ]) {
             sh '''
                 export FWCI_WORKFLOW_NAME="my-firmware-workflow"
-                export COMMIT_HASH="${GERRIT_PATCHSET_REVISION}"
+                export FWCI_PROJECT_LINK="github.com/my-org/firmware-config"
                 export BINARIES="Binary=build/firmware.bin"
-                export CHANGE_ID="${GERRIT_CHANGE_ID:-}"
-                export PROJECT="${GERRIT_PROJECT:-}"
-                export CHANGE_NUMBER="${GERRIT_CHANGE_NUMBER:-}"
-                export CURRENT_REVISION="${GERRIT_PATCHSET_REVISION:-}"
-                export PATCHSET="${GERRIT_PATCHSET_NUMBER:-}"
-
                 ./job-request-script.sh
             '''
         }
@@ -142,18 +137,7 @@ stage('Deploy to FirmwareCI') {
 }
 ```
 
-### Cross-Repository Workflow Config
-
-When the FirmwareCI workflow config lives in a different repository, add `FWCI_PROJECT_LINK`:
-
-```groovy
-sh '''
-    export FWCI_WORKFLOW_NAME="my-firmware-workflow"
-    export FWCI_PROJECT_LINK="github.com/my-org/firmware-config"
-    ...
-    ./job-request-script.sh
-'''
-```
+`FWCI_PROJECT_LINK` is required when the FirmwareCI workflow config lives in a different repository than the one being tested. `GERRIT_PATCHSET_REVISION` and other Gerrit metadata are set automatically by the Gerrit Trigger plugin.
 
 ## Plugin Installation
 
