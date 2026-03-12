@@ -14,10 +14,18 @@ fi
 
 
 # Check required environment variables
-if [ -z "$FWCI_WORKFLOW_ID" ] || [ -z "$GERRIT_PATCHSET_REVISION" ]; then
-    echo "ERROR: Missing required environment variables:"
-    echo "  FWCI_WORKFLOW_ID: ${FWCI_WORKFLOW_ID:-'(not set)'}"
-    echo "  GERRIT_PATCHSET_REVISION: ${GERRIT_PATCHSET_REVISION:-'(not set)'}"
+if [ -z "$FWCI_WORKFLOW_NAME" ] && [ -z "$FWCI_WORKFLOW_ID" ]; then
+    echo "ERROR: Missing workflow reference. Set one of:"
+    echo "  FWCI_WORKFLOW_NAME (preferred): workflow name as shown in FirmwareCI"
+    echo "  FWCI_WORKFLOW_ID (deprecated): workflow ULID"
+    exit 1
+fi
+if [ -n "$FWCI_WORKFLOW_NAME" ] && [ -n "$FWCI_WORKFLOW_ID" ]; then
+    echo "ERROR: FWCI_WORKFLOW_NAME and FWCI_WORKFLOW_ID are mutually exclusive"
+    exit 1
+fi
+if [ -z "$GERRIT_PATCHSET_REVISION" ]; then
+    echo "ERROR: Missing required environment variable: GERRIT_PATCHSET_REVISION"
     exit 1
 fi
 
@@ -39,9 +47,39 @@ apt-get update && apt-get install -y curl jq
 
 # Configuration
 FWCI_API="${FWCI_API:-https://api.firmwareci.9esec.dev:8443}"
+
+# Determine workflow reference, JSON key, and VCS query params (for name-based resolution)
+if [ -n "$FWCI_WORKFLOW_NAME" ]; then
+    WORKFLOW_REF="$FWCI_WORKFLOW_NAME"
+    WORKFLOW_JSON_KEY="workflow_name"
+    VCS_PARAMS=""
+    if [ -n "$FWCI_PROJECT_LINK" ]; then
+        # Strip scheme if present, then split into host/org/repo
+        LINK="${FWCI_PROJECT_LINK#*://}"
+        IFS='/' read -ra PARTS <<< "$LINK"
+        HOST="${PARTS[0]}"
+        ORG="${PARTS[1]}"
+        REPO="${PARTS[2]}"
+        if [[ "$HOST" == *"github"* ]]; then
+            PROVIDER="github"
+        elif [[ "$HOST" == *"gitlab"* ]]; then
+            PROVIDER="gitlab"
+        fi
+        if [ -n "$PROVIDER" ] && [ -n "$ORG" ] && [ -n "$REPO" ]; then
+            VCS_PARAMS="?provider=${PROVIDER}&org=${ORG}&repo=${REPO}"
+        fi
+    fi
+else
+    WORKFLOW_REF="$FWCI_WORKFLOW_ID"
+    WORKFLOW_JSON_KEY="workflow_id"
+    VCS_PARAMS=""
+fi
+
 echo "=== FirmwareCI Deployment ======"
 echo "API: ${FWCI_API}"
-echo "Workflow ID: ${FWCI_WORKFLOW_ID}"
+[ -n "$FWCI_WORKFLOW_NAME" ] && echo "Workflow name: ${FWCI_WORKFLOW_NAME}"
+[ -n "$FWCI_WORKFLOW_ID" ]   && echo "Workflow ID: ${FWCI_WORKFLOW_ID} (deprecated)"
+[ -n "$FWCI_PROJECT_LINK" ]  && echo "Project link: ${FWCI_PROJECT_LINK}"
 echo "Commit hash: ${GERRIT_PATCHSET_REVISION}"
 [ -n "$BINARIES" ] && echo "Templates-Keys -> Files: ${BINARIES}"
 echo "================================"
@@ -54,11 +92,11 @@ if [ "$AUTH_METHOD" = "email_password" ]; then
     LOGIN_RESPONSE=$(curl -s -X POST "${FWCI_API}/login" \
     -H "Content-Type: application/json" \
     -d "{\"email\": \"${FWCI_EMAIL}\", \"password\": \"${FWCI_PASSWORD}\"}")
-    
+
     echo "Login response: ${LOGIN_RESPONSE}"
     STATUS_CODE=$(echo "${LOGIN_RESPONSE}" | jq -r '.code // empty')
     ACCESS_TOKEN=$(echo "${LOGIN_RESPONSE}" | jq -r '.data // empty')
-    
+
     if [ -z "$ACCESS_TOKEN" ] || [ "$STATUS_CODE" != "200" ]; then
         echo "ERROR: Failed to get access token"
         echo "Status code: ${STATUS_CODE}"
@@ -73,9 +111,9 @@ fi
 # Step 2: Upload binaries to server (optional)
 if [ -n "$BINARIES" ]; then
     echo "Step 2: Uploading binaries..."
-    
+
     CURL_FORM_ARGS=()
-    
+
     for key in "${!BINARIES_MAP[@]}"; do
         file="${BINARIES_MAP[$key]}"
         if [ -f "$file" ]; then
@@ -85,7 +123,7 @@ if [ -n "$BINARIES" ]; then
         fi
     done
 
-    UPLOAD_RESPONSE=$(curl -s -X POST "${FWCI_API}/v0/binaries/${FWCI_WORKFLOW_ID}" \
+    UPLOAD_RESPONSE=$(curl -s -X POST "${FWCI_API}/v0/binaries/${WORKFLOW_REF}${VCS_PARAMS}" \
         -H "Authorization: ${ACCESS_TOKEN}" \
         -H "Content-Type: multipart/form-data" \
         "${CURL_FORM_ARGS[@]}")
@@ -93,21 +131,21 @@ if [ -n "$BINARIES" ]; then
     STATUS_CODE=$(echo "${UPLOAD_RESPONSE}" | jq -r '.code // empty')
 
     DATA=$(echo "${UPLOAD_RESPONSE}" | jq -c '.data // empty')
-    
+
     if [ -z "$DATA" ] || [ "$STATUS_CODE" != "201" ]; then
         ERROR_MSG=$(echo "${UPLOAD_RESPONSE}" | jq -r '.error // empty')
         echo "ERROR: Failed to upload binaries"
         [ -n "$ERROR_MSG" ] && echo "Error message: $ERROR_MSG"
         exit 1
     fi
-    
+
     BINARIES_JSON="$DATA"
 
     if [ "${#REMOTE_BINARIES_MAP[@]}" -gt 0 ]; then
         REMOTE_JSON=$(printf '{%s}' "$(IFS=,; for key in "${!REMOTE_BINARIES_MAP[@]}"; do printf '"%s":"%s"' "$key" "${REMOTE_BINARIES_MAP[$key]}"; done)")
         BINARIES_JSON=$(jq -c --argjson local "$BINARIES_JSON" --argjson remote "$REMOTE_JSON" '$local + $remote')
     fi
-    
+
 else
     BINARIES_JSON="{}"
 fi
@@ -123,11 +161,17 @@ GERRIT_JSON='"commit_hash": "'"${GERRIT_PATCHSET_REVISION}"'"'
 [ -n "$GERRIT_PATCHSET_REVISION" ] && GERRIT_JSON="${GERRIT_JSON}, \"current_revision\": \"${GERRIT_PATCHSET_REVISION}\""
 [ -n "$GERRIT_PATCHSET_NUMBER" ] && GERRIT_JSON="${GERRIT_JSON}, \"patchset\": \"${GERRIT_PATCHSET_NUMBER}\""
 
+# Build workflow_vcs JSON for name-based resolution (required when using workflow_name)
+WORKFLOW_VCS_JSON=""
+if [ -n "$PROVIDER" ] && [ -n "$ORG" ] && [ -n "$REPO" ]; then
+    WORKFLOW_VCS_JSON=', "workflow_vcs": {"provider": "'"${PROVIDER}"'", "org": "'"${ORG}"'", "repo": "'"${REPO}"'", "instance": "'"${HOST}"'"}'
+fi
+
 JOB_RESPONSE=$(curl -s -X POST "${FWCI_API}/v0/job" \
 -H "Authorization: ${ACCESS_TOKEN}" \
 -H "Content-Type: application/json" \
 -d '{
-    "workflow_id": "'"${FWCI_WORKFLOW_ID}"'",
+    "'"${WORKFLOW_JSON_KEY}"'": "'"${WORKFLOW_REF}"'",
     "binaries": '"${BINARIES_JSON}"',
     "info": {
         "gerrit": {
@@ -137,6 +181,7 @@ JOB_RESPONSE=$(curl -s -X POST "${FWCI_API}/v0/job" \
           "Trigger": "Gerrit",
           "SHA": "'"${GERRIT_PATCHSET_REVISION}"'"
         }
+        '"${WORKFLOW_VCS_JSON}"'
     }
 }')
 
