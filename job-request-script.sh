@@ -155,6 +155,7 @@ echo "Step 3: Creating job..."
 
 # Create JSON for gerrit data
 GERRIT_JSON='"commit_hash": "'"${GERRIT_PATCHSET_REVISION}"'"'
+[ -n "$GERRIT_HOST" ] && GERRIT_JSON="${GERRIT_JSON}, \"host\": \"${GERRIT_HOST}\""
 [ -n "$GERRIT_CHANGE_ID" ] && GERRIT_JSON="${GERRIT_JSON}, \"change_id\": \"${GERRIT_CHANGE_ID}\""
 [ -n "$GERRIT_PROJECT" ] && GERRIT_JSON="${GERRIT_JSON}, \"project\": \"${GERRIT_PROJECT}\""
 [ -n "$GERRIT_CHANGE_NUMBER" ] && GERRIT_JSON="${GERRIT_JSON}, \"change_number\": \"${GERRIT_CHANGE_NUMBER}\""

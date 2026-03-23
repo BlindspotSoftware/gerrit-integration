@@ -38,12 +38,12 @@ Displays FirmwareCI job results directly in Gerrit's Checks tab with real-time s
 
 ### Required
 
-| Variable                   | Description                                                          |
-| -------------------------- | -------------------------------------------------------------------- |
-| `FWCI_TOKEN`               | FirmwareCI authentication token                                      |
-| `FWCI_WORKFLOW_NAME`       | Name of the FirmwareCI workflow (preferred over `FWCI_WORKFLOW_ID`)  |
-| `FWCI_WORKFLOW_ID`         | *(Deprecated)* Workflow ULID — use `FWCI_WORKFLOW_NAME` instead      |
-| `GERRIT_PATCHSET_REVISION` | Git commit hash — set automatically by the Gerrit Trigger plugin     |
+| Variable                   | Description                                                         |
+| -------------------------- | ------------------------------------------------------------------- |
+| `FWCI_TOKEN`               | FirmwareCI authentication token                                     |
+| `FWCI_WORKFLOW_NAME`       | Name of the FirmwareCI workflow (preferred over `FWCI_WORKFLOW_ID`) |
+| `FWCI_WORKFLOW_ID`         | *(Deprecated)* Workflow ULID — use `FWCI_WORKFLOW_NAME` instead     |
+| `GERRIT_PATCHSET_REVISION` | Git commit hash — set automatically by the Gerrit Trigger plugin    |
 
 Workflow reference: provide either `FWCI_WORKFLOW_NAME` or `FWCI_WORKFLOW_ID` (mutually exclusive; exactly one must be set).
 
@@ -51,7 +51,7 @@ Workflow reference: provide either `FWCI_WORKFLOW_NAME` or `FWCI_WORKFLOW_ID` (m
 
 | Variable            | Description                                                                                                                                                                                                                                                                                          |
 | ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `BINARIES`          | Semicolon-separated `template=path` pairs. Paths may be local files, HTTP/S URLs, or S3 URIs. Example: `fw=./build/fw.bin;bl=./build/bl.bin`                                                                                                                                                        |
+| `BINARIES`          | Semicolon-separated `template=path` pairs. Paths may be local files, HTTP/S URLs, or S3 URIs. Example: `fw=./build/fw.bin;bl=./build/bl.bin`                                                                                                                                                         |
 | `FWCI_PROJECT_LINK` | Repo containing the FirmwareCI workflow config — required when it differs from the repo being tested. Copy from the Workflows page (copy button next to the project name). Accepts with or without scheme; `org/repo` is sufficient for same-org repos. Example: `github.com/my-org/firmware-config` |
 | `FWCI_EMAIL`        | Account email (alternative to `FWCI_TOKEN`)                                                                                                                                                                                                                                                          |
 | `FWCI_PASSWORD`     | Account password (alternative to `FWCI_TOKEN`)                                                                                                                                                                                                                                                       |
@@ -61,12 +61,13 @@ Workflow reference: provide either `FWCI_WORKFLOW_NAME` or `FWCI_WORKFLOW_ID` (m
 
 These are set automatically by the Gerrit Trigger plugin when running in Jenkins.
 
-| Variable                   | Description          |
-| -------------------------- | -------------------- |
-| `GERRIT_CHANGE_ID`         | Gerrit change ID     |
-| `GERRIT_PROJECT`           | Gerrit project name  |
-| `GERRIT_CHANGE_NUMBER`     | Gerrit change number |
-| `GERRIT_PATCHSET_NUMBER`   | Patchset number      |
+| Variable                 | Description                                          |
+| ------------------------ | ---------------------------------------------------- |
+| `GERRIT_HOST`            | Gerrit instance hostname (e.g. `gerrit.example.com`) |
+| `GERRIT_CHANGE_ID`       | Gerrit change ID                                     |
+| `GERRIT_PROJECT`         | Gerrit project name                                  |
+| `GERRIT_CHANGE_NUMBER`   | Gerrit change number                                 |
+| `GERRIT_PATCHSET_NUMBER` | Patchset number                                      |
 
 ### Plugin Configuration
 
