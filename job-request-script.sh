@@ -180,7 +180,8 @@ JOB_RESPONSE=$(curl -s -X POST "${FWCI_API}/v0/job" \
         },
         "meta": {
           "Trigger": "Gerrit",
-          "SHA": "'"${GERRIT_PATCHSET_REVISION}"'"
+          "SHA": "'"${GERRIT_PATCHSET_REVISION}"'",
+          "Branch": "'"${GERRIT_BRANCH}"'"
         }
         '"${WORKFLOW_VCS_JSON}"'
     }
