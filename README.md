@@ -90,6 +90,29 @@ const CONFIG = Object.freeze({
 
 ## Jenkins Integration
 
+### Required Jenkins Plugins
+
+**Always required:**
+
+- **Gerrit Trigger** (`gerrit-trigger`) — listens for patchset events from Gerrit
+- **Git Plugin** (`git`) — SCM checkout
+- **Credentials Plugin** (`credentials`) — stores secrets
+- **Credentials Binding Plugin** (`credentials-binding`) — exposes credentials in `withCredentials {}` blocks
+- **Pipeline: Groovy** (`workflow-cps`) — scripted pipeline execution
+- **Pipeline: Stage Step** (`pipeline-stage-step`) — `stage()` support
+- **Pipeline: Nodes and Processes** (`workflow-durable-task-step`) — `node()`, `sh()` support
+
+**Required for Declarative `pipeline { }` syntax:**
+
+- **Pipeline: Declarative** (`pipeline-model-definition`) — the `pipeline { agent ... stages ... }` DSL
+
+**Optional feature plugins (Declarative or Scripted):**
+
+- **Docker Pipeline** (`docker-workflow`) — needed only when using `agent { docker { image ... } }` or `docker.image(...).inside { }`
+- **Timestamper** (`timestamper`) — needed only when using the `timestamps()` option
+
+> **Note:** If `pipeline-model-definition` is not installed, use a Scripted pipeline (`node('label') { stage(...) { ... } }`) instead. The `triggers { }` block shown in the Gerrit Trigger Setup section below is Declarative syntax; see the [Gerrit Trigger plugin docs](https://plugins.jenkins.io/gerrit-trigger/) for the scripted equivalent.
+
 ### Gerrit Trigger Setup
 
 Configure your Jenkins pipeline to automatically trigger on Gerrit patchset creation:
