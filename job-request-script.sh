@@ -43,7 +43,14 @@ else
 fi
 
 # Install dependencies
-apt-get update && apt-get install -y curl jq
+if ! command -v jq >/dev/null; then
+    JQ_DIR="${WORKSPACE:-$HOME/.local/bin}"
+    mkdir -p "$JQ_DIR"
+    curl -sL -o "$JQ_DIR/jq" https://github.com/jqlang/jq/releases/download/jq-1.7.1/jq-linux-amd64
+    chmod +x "$JQ_DIR/jq"
+    export PATH="$JQ_DIR:$PATH"
+fi
+
 
 # Configuration
 FWCI_API="${FWCI_API:-https://api.firmwareci.9esec.dev:8443}"
