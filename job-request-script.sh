@@ -55,6 +55,13 @@ fi
 # Configuration
 FWCI_API="${FWCI_API:-https://api.firmwareci.9esec.dev:8443}"
 
+# FWCI_BRANCH feeds a URL query and a JSON body below; restrict to git-safe
+# chars to prevent query/JSON injection.
+if [ -n "$FWCI_BRANCH" ] && ! [[ "$FWCI_BRANCH" =~ ^[A-Za-z0-9._/-]+$ ]]; then
+    echo "ERROR: FWCI_BRANCH contains invalid characters" >&2
+    exit 1
+fi
+
 # Determine workflow reference, JSON key, and VCS query params (for name-based resolution)
 if [ -n "$FWCI_WORKFLOW_NAME" ]; then
     WORKFLOW_REF="$FWCI_WORKFLOW_NAME"
@@ -74,6 +81,8 @@ if [ -n "$FWCI_WORKFLOW_NAME" ]; then
         fi
         if [ -n "$PROVIDER" ] && [ -n "$ORG" ] && [ -n "$REPO" ]; then
             VCS_PARAMS="?provider=${PROVIDER}&org=${ORG}&repo=${REPO}"
+            # branch-scope the upload's workflow resolution too, not just the job
+            [ -n "$FWCI_BRANCH" ] && VCS_PARAMS="${VCS_PARAMS}&branch=$(jq -rn --arg v "$FWCI_BRANCH" '$v|@uri')"
         fi
     fi
 else
@@ -88,6 +97,7 @@ echo "API: ${FWCI_API}"
 [ -n "$FWCI_WORKFLOW_ID" ]   && echo "Workflow ID: ${FWCI_WORKFLOW_ID} (deprecated)"
 [ -n "$FWCI_PROJECT_LINK" ]  && echo "Project link: ${FWCI_PROJECT_LINK}"
 echo "Commit hash: ${GERRIT_PATCHSET_REVISION}"
+[ -n "$FWCI_BRANCH" ] && echo "Workflow branch: ${FWCI_BRANCH}"
 [ -n "$BINARIES" ] && echo "Templates-Keys -> Files: ${BINARIES}"
 echo "================================"
 
@@ -175,10 +185,22 @@ if [ -n "$PROVIDER" ] && [ -n "$ORG" ] && [ -n "$REPO" ]; then
     WORKFLOW_VCS_JSON=', "workflow_vcs": {"provider": "'"${PROVIDER}"'", "org": "'"${ORG}"'", "repo": "'"${REPO}"'", "instance": "'"${HOST}"'"}'
 fi
 
+# Scope the workflow lookup to a specific branch. FirmwareCI workflows are
+# branch-scoped, so branch_name selects which branch's workflow to run. Set
+# FWCI_BRANCH to the firmwareci branch the workflow lives on (which may differ
+# from the Gerrit change's branch). Only meaningful with workflow_name (ignored
+# when resolving by workflow_id). Omitted when FWCI_BRANCH is unset, in which
+# case the server uses the project's default branch.
+BRANCH_NAME_JSON=""
+if [ -n "$FWCI_BRANCH" ]; then
+    BRANCH_NAME_JSON='"branch_name": "'"${FWCI_BRANCH}"'",'
+fi
+
 JOB_RESPONSE=$(curl -s -X POST "${FWCI_API}/v0/job" \
 -H "Authorization: ${ACCESS_TOKEN}" \
 -H "Content-Type: application/json" \
 -d '{
+    '"${BRANCH_NAME_JSON}"'
     "'"${WORKFLOW_JSON_KEY}"'": "'"${WORKFLOW_REF}"'",
     "binaries": '"${BINARIES_JSON}"',
     "info": {
