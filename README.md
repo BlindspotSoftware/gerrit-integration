@@ -56,6 +56,7 @@ Workflow reference: provide either `FWCI_WORKFLOW_NAME` or `FWCI_WORKFLOW_ID` (m
 | `FWCI_EMAIL`        | Account email (alternative to `FWCI_TOKEN`)                                                                                                                                                                                                                                                          |
 | `FWCI_PASSWORD`     | Account password (alternative to `FWCI_TOKEN`)                                                                                                                                                                                                                                                       |
 | `FWCI_API`          | API endpoint. Default: `https://api.firmwareci.9esec.dev:8443`                                                                                                                                                                                                                                       |
+| `FWCI_PRIORITY`     | Queue priority of the jobs: `low`, `normal` or `high`. A job of higher priority gets a device before every queued job of lower priority. Default: `low` for a merged change (`GERRIT_EVENT_TYPE` `change-merged` or `ref-updated`), `normal` otherwise                                                |
 
 ### Gerrit Metadata (Optional)
 
