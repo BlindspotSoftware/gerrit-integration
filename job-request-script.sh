@@ -63,21 +63,19 @@ if [ -n "$FWCI_BRANCH" ] && ! [[ "$FWCI_BRANCH" =~ ^[A-Za-z0-9._/-]+$ ]]; then
 fi
 
 # Queue priority of the jobs: a job of higher priority gets a device before
-# every queued job of lower priority. Unset, a review (new patchset, comment)
-# queues at normal and a merged change at low, like pushes in other CI.
-if [ -z "$FWCI_PRIORITY" ]; then
-    case "$GERRIT_EVENT_TYPE" in
-        change-merged|ref-updated) FWCI_PRIORITY="low" ;;
-        *) FWCI_PRIORITY="normal" ;;
-    esac
-fi
+# every queued job of lower priority. Sent only when set; unset, FirmwareCI
+# queues the run at low.
 case "$FWCI_PRIORITY" in
-    low|normal|high) ;;
+    ""|low|mid|high) ;;
     *)
-        echo "ERROR: FWCI_PRIORITY must be low, normal or high" >&2
+        echo "ERROR: FWCI_PRIORITY must be low, mid or high" >&2
         exit 1
         ;;
 esac
+PRIORITY_JSON=""
+if [ -n "$FWCI_PRIORITY" ]; then
+    PRIORITY_JSON='"priority": "'"${FWCI_PRIORITY}"'",'
+fi
 
 # Determine workflow reference, JSON key, and VCS query params (for name-based resolution)
 if [ -n "$FWCI_WORKFLOW_NAME" ]; then
@@ -115,7 +113,7 @@ echo "API: ${FWCI_API}"
 [ -n "$FWCI_PROJECT_LINK" ]  && echo "Project link: ${FWCI_PROJECT_LINK}"
 echo "Commit hash: ${GERRIT_PATCHSET_REVISION}"
 [ -n "$FWCI_BRANCH" ] && echo "Workflow branch: ${FWCI_BRANCH}"
-echo "Priority: ${FWCI_PRIORITY}"
+[ -n "$FWCI_PRIORITY" ] && echo "Priority: ${FWCI_PRIORITY}"
 [ -n "$BINARIES" ] && echo "Templates-Keys -> Files: ${BINARIES}"
 echo "================================"
 
@@ -219,7 +217,7 @@ JOB_RESPONSE=$(curl -s -X POST "${FWCI_API}/v0/job" \
 -H "Content-Type: application/json" \
 -d '{
     '"${BRANCH_NAME_JSON}"'
-    "priority": "'"${FWCI_PRIORITY}"'",
+    '"${PRIORITY_JSON}"'
     "'"${WORKFLOW_JSON_KEY}"'": "'"${WORKFLOW_REF}"'",
     "binaries": '"${BINARIES_JSON}"',
     "info": {
