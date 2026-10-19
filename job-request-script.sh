@@ -64,7 +64,8 @@ fi
 
 # Queue priority of the jobs: a job of higher priority gets a device before
 # every queued job of lower priority. Sent only when set; unset, FirmwareCI
-# queues the run at mid.
+# queues the run at mid. Any case, as the server reads it: High is high.
+FWCI_PRIORITY="${FWCI_PRIORITY,,}"
 case "$FWCI_PRIORITY" in
     ""|low|mid|high) ;;
     *)
