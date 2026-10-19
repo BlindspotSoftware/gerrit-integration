@@ -127,14 +127,14 @@ if [ "$AUTH_METHOD" = "email_password" ]; then
     -H "Content-Type: application/json" \
     -d "{\"email\": \"${FWCI_EMAIL}\", \"password\": \"${FWCI_PASSWORD}\"}")
 
-    echo "Login response: ${LOGIN_RESPONSE}"
+    # The response carries the token, so it never reaches the log.
     STATUS_CODE=$(echo "${LOGIN_RESPONSE}" | jq -r '.code // empty')
-    ACCESS_TOKEN=$(echo "${LOGIN_RESPONSE}" | jq -r '.data // empty')
+    ACCESS_TOKEN=$(echo "${LOGIN_RESPONSE}" | jq -r '.data.token // empty')
 
     if [ -z "$ACCESS_TOKEN" ] || [ "$STATUS_CODE" != "200" ]; then
         echo "ERROR: Failed to get access token"
         echo "Status code: ${STATUS_CODE}"
-        echo "Response: ${LOGIN_RESPONSE}"
+        echo "Error: $(echo "${LOGIN_RESPONSE}" | jq -r '.error // empty')"
         exit 1
     fi
     echo "Authentication successful"
