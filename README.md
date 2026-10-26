@@ -55,7 +55,7 @@ Workflow reference: provide either `FWCI_WORKFLOW_NAME` or `FWCI_WORKFLOW_ID` (m
 | `FWCI_PROJECT_LINK` | Repo containing the FirmwareCI workflow config — required when it differs from the repo being tested. Copy from the Workflows page (copy button next to the project name). Accepts with or without scheme; `org/repo` is sufficient for same-org repos. Example: `github.com/my-org/firmware-config` |
 | `FWCI_EMAIL`        | Account email (alternative to `FWCI_TOKEN`)                                                                                                                                                                                                                                                          |
 | `FWCI_PASSWORD`     | Account password (alternative to `FWCI_TOKEN`)                                                                                                                                                                                                                                                       |
-| `FWCI_API`          | API endpoint. Default: `https://api.firmwareci.9esec.dev:8443`                                                                                                                                                                                                                                       |
+| `FWCI_API`          | API endpoint. Default: `https://api.firmware-ci.com`                                                                                                                                                                                                                                                 |
 | `FWCI_PRIORITY`     | Queue priority of the jobs: `low`, `mid` or `high`. A job of higher priority gets a device before every queued job of lower priority. Unset, FirmwareCI queues the run at `mid`                                                                                                                            |
 
 ### Gerrit Metadata (Optional)
@@ -78,7 +78,7 @@ Before installing the plugin, configure the `CONFIG` object in `checks-plugin.js
 const CONFIG = Object.freeze({
   PLUGIN_VERSION: "1.0.0",
   API_VERSION: "3.12.0",
-  FIRMWARE_CI_API_URL: "https://api.firmwareci.9esec.dev:8443/v0",
+  FIRMWARE_CI_API_URL: "https://api.firmware-ci.com/v0",
   FIRMWARE_CI_URL: "https://app.firmware-ci.com",
   ORGANIZATION: "your-organization-name",  // Replace with your FirmwareCI organization name
   POLLING_INTERVAL_SECONDS: 60,
