@@ -386,11 +386,14 @@ class FirmwareChecks {
       run.startedTimestamp = new Date(jobRequest.start_time);
       run.scheduledTimestamp = new Date(jobRequest.start_time);
 
-      if (jobRequest.duration) {
-        run.finishedTimestamp = new Date(
-          run.startedTimestamp.getTime() +
-            this.parseDuration(jobRequest.duration)
-        );
+      // The request's duration sums its jobs' run times, which places the end
+      // wrongly when jobs overlap or wait between each other.
+      const endTimes = (jobRequest.jobs || [])
+        .map((job) => Date.parse(job.end_time))
+        .filter((time) => time > 0);
+
+      if (run.status === "COMPLETED" && endTimes.length > 0) {
+        run.finishedTimestamp = new Date(Math.max(...endTimes));
       }
     }
 
@@ -487,27 +490,6 @@ class FirmwareChecks {
    */
   mapWorkflowStatus(status) {
     return STATUS_MAP.WORKFLOW[status] || "RUNNABLE";
-  }
-
-  /**
-   * Parses duration string to milliseconds
-   * @param {string} duration - Duration string (e.g., "10m32s")
-   * @returns {number} - Duration in milliseconds
-   */
-  parseDuration(duration) {
-    let milliseconds = 0;
-    const minutes = duration.match(/(\d+)m/);
-    const seconds = duration.match(/(\d+)s/);
-
-    if (minutes?.[1]) {
-      milliseconds += parseInt(minutes[1], 10) * 60 * 1000;
-    }
-
-    if (seconds?.[1]) {
-      milliseconds += parseInt(seconds[1], 10) * 1000;
-    }
-
-    return milliseconds;
   }
 }
 
