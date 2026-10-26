@@ -53,7 +53,7 @@ fi
 
 
 # Configuration
-FWCI_API="${FWCI_API:-https://api.firmwareci.9esec.dev:8443}"
+FWCI_API="${FWCI_API:-https://api.firmware-ci.com}"
 
 # FWCI_BRANCH feeds a URL query and a JSON body below; restrict to git-safe
 # chars to prevent query/JSON injection.
