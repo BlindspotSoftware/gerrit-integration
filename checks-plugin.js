@@ -443,7 +443,7 @@ class FirmwareChecks {
       externalId: job.id,
       category: statusInfo.category,
       summary: job.test?.name || "Unnamed Test",
-      message: job.error || job.test?.description || "",
+      message: job.result?.failure || job.result?.error || job.test?.description || "",
       attempt: attempt,
       tags: [
         {
