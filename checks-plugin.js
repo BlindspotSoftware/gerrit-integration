@@ -285,7 +285,7 @@ class FirmwareChecks {
    * @returns {Array} - List of runs for Gerrit checks
    */
   processJobRequests(jobRequests, changeData, carriedFromPatchset) {
-    // Group job requests by workflow ID and assign attempt numbers so reruns of
+    // Group job requests by workflow name and assign attempt numbers so reruns of
     // a workflow collapse into attempts of one run.
     const workflowGroups = this.groupJobRequestsByWorkflow(jobRequests);
     this.assignAttemptNumbers(workflowGroups);
@@ -296,15 +296,17 @@ class FirmwareChecks {
   }
 
   /**
-   * Groups job requests by their workflow ID
+   * Groups job requests by their workflow's name, which names their run. Gerrit
+   * folds runs of one name into one, and a workflow synced again from its branch
+   * gets a new ID, so grouping by ID numbers each request attempt 1.
    * @param {Array} jobRequests - List of job requests
-   * @returns {Object} - Job requests grouped by workflow ID
+   * @returns {Object} - Job requests grouped by workflow name
    */
   groupJobRequestsByWorkflow(jobRequests) {
     const workflowGroups = {};
 
     for (const jobRequest of jobRequests) {
-      const workflowId = jobRequest.workflow_id || "unknown";
+      const workflowId = jobRequest.workflow_name || "unknown";
       if (!workflowGroups[workflowId]) {
         workflowGroups[workflowId] = [];
       }
